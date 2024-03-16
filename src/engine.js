@@ -868,6 +868,9 @@ export class KubEngine {
 
   update() {
     this.renderManager.handleMouse(this.inputManager.mouseState);
+    if (this.world) {
+      this.world.update();
+    }
   }
 
   endLoop() {
