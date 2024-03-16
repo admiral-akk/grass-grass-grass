@@ -146,7 +146,7 @@ class AudioManager {
         return;
       }
       const buffer = this.buffers.get(path);
-      const audio = this.audioPool.filter((audio) => !audio.isPlaying).pop();
+      let audio = this.audioPool.filter((audio) => !audio.isPlaying).pop();
       if (!audio) {
         audio = new THREE.Audio(this.audioListener);
       }
