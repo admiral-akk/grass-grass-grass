@@ -4,6 +4,8 @@ import { gsap } from "gsap";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import loadingVertexShader from "./shaders/loading/vertex.glsl";
 import loadingFragmentShader from "./shaders/loading/fragment.glsl";
+import flagVertShader from "./shaders/flat/vertex.glsl";
+import flagFragShader from "./shaders/flat/fragment.glsl";
 import * as ENGINE from "./engine.js";
 
 const exampleVert = `
@@ -13,6 +15,7 @@ uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
 uniform float segments;
 uniform float vertexCount;
+uniform vec2 grassSize;
 
 attribute vec3 offset;
 attribute float vertIndex;
@@ -21,13 +24,14 @@ varying float vVertIndex;
 
 void main() {
 
-  vVertIndex = vertIndex;
+  float vertID = mod(float(vertIndex), vertexCount);
+  vVertIndex = vertID;
 
-  float xSide = mod(vertIndex, 2.0);
-  float heightPercent = (vertIndex - xSide) / (segments * 2.0);
+  float xSide = mod(vertID, 2.0);
+  float heightPercent = (vertID - xSide) / (segments * 2.0);
   float z = 0.0;
-  float y = heightPercent;
-  float x = (xSide - 0.5) * (1.0 - heightPercent);
+  float y = heightPercent * grassSize.y;
+  float x = (xSide - 0.5) * (1.0 - heightPercent) * grassSize.x;
 
   vec3 vPosition = vec3(x,y,z) + offset;
   gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
@@ -40,7 +44,7 @@ precision mediump  float;
 varying float vVertIndex;
 
 void main() {
-  gl_FragColor = vec4(vVertIndex, vVertIndex - 1., vVertIndex - 2., 1.);
+  gl_FragColor = vec4(0.,1.,0., 1.);
 }
 `;
 
@@ -52,9 +56,9 @@ const engine = new ENGINE.KubEngine();
 
 class Grass {
   constructor(engine) {
-    const instances = 10;
+    const instances = 100;
 
-    const segments = 1;
+    const segments = 3;
     const VERTICES = (segments + 1) * 2;
     const indices = [];
     for (let i = 0; i < segments; ++i) {
@@ -84,11 +88,13 @@ class Grass {
     }
     const offsets = [];
     for (let i = 0; i < instances; ++i) {
-      for (let v = 0; v < 3; v++) {
-        offsets.push(
-          Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
-        );
-      }
+      offsets.push(
+        Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
+      );
+      offsets.push(0);
+      offsets.push(
+        Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
+      );
     }
 
     const geometry = new THREE.InstancedBufferGeometry();
@@ -109,12 +115,10 @@ class Grass {
       uniforms: {
         segments: { value: segments },
         vertexCount: { value: VERTICES },
+        grassSize: { value: new THREE.Vector2(1, 5) },
       },
       vertexShader: exampleVert,
       fragmentShader: exampleFrag,
-      side: THREE.DoubleSide,
-      forceSinglePass: true,
-      transparent: true,
     });
 
     const mesh = new THREE.Mesh(geometry, material);
@@ -127,6 +131,18 @@ class World {
     this.engine = engine;
 
     this.grass = new Grass(engine);
+
+    const geo = new THREE.PlaneGeometry(1000, 1000);
+
+    const material = engine.renderManager.materialManager.addMaterial(
+      "flat",
+      flagVertShader,
+      flagFragShader
+    );
+
+    const planeMesh = new THREE.Mesh(geo, material);
+    planeMesh.rotation.x = -Math.PI / 2;
+    engine.scene.add(planeMesh);
   }
 
   update() {}
