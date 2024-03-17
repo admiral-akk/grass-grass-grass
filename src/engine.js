@@ -14,7 +14,6 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import newData from "./data.json";
-import { uniform } from "three/examples/jsm/nodes/core/UniformNode";
 /**
  * There are going to be a few components here.
  *
@@ -124,7 +123,6 @@ class TextureManager {
       return texture;
     };
     this.defaultTexture = this.load(TextureManager.defaultTexturePath);
-    console.log(this.defaultTexture);
   }
 }
 
@@ -208,12 +206,12 @@ class ModelManager {
 const perspectiveConfig = {
   type: "perspective",
   fov: 75,
-  zoom: 2,
+  zoom: 20,
 };
 
 const orthographicConfig = {
   type: "orthographic",
-  zoom: 2,
+  zoom: 20,
 };
 
 const cameraConfig = {

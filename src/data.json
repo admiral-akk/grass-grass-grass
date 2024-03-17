@@ -1,10 +1,1 @@
-{
-  "renderManager": {
-    "materialManager": {
-      "texture_pTexture": {
-        "uniformType": "sampler2D",
-        "value": "./texture/uvSubgrid.png"
-      }
-    }
-  }
-}
+{}

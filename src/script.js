@@ -4,9 +4,45 @@ import { gsap } from "gsap";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import loadingVertexShader from "./shaders/loading/vertex.glsl";
 import loadingFragmentShader from "./shaders/loading/fragment.glsl";
-import basicTextureVertexShader from "./shaders/basicTexture/vertex.glsl";
-import basicTextureFragmentShader from "./shaders/basicTexture/fragment.glsl";
 import * as ENGINE from "./engine.js";
+
+const exampleVert = `
+precision mediump  float;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform float segments;
+uniform float vertexCount;
+
+attribute vec3 offset;
+attribute float vertIndex;
+
+varying float vVertIndex;
+
+void main() {
+
+  vVertIndex = vertIndex;
+
+  float xSide = mod(vertIndex, 2.0);
+  float heightPercent = (vertIndex - xSide) / (segments * 2.0);
+  float z = 0.0;
+  float y = heightPercent;
+  float x = (xSide - 0.5) * (1.0 - heightPercent);
+
+  vec3 vPosition = vec3(x,y,z) + offset;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
+}
+`;
+
+const exampleFrag = `
+precision mediump  float;
+
+varying float vVertIndex;
+
+void main() {
+  gl_FragColor = vec4(vVertIndex, vVertIndex - 1., vVertIndex - 2., 1.);
+}
+`;
 
 /**
  * Core objects
@@ -14,32 +50,86 @@ import * as ENGINE from "./engine.js";
 
 const engine = new ENGINE.KubEngine();
 
+class Grass {
+  constructor(engine) {
+    const instances = 10;
+
+    const segments = 1;
+    const VERTICES = (segments + 1) * 2;
+    const indices = [];
+    for (let i = 0; i < segments; ++i) {
+      const vi = i * 2;
+      indices[i * 12 + 0] = vi + 0;
+      indices[i * 12 + 1] = vi + 1;
+      indices[i * 12 + 2] = vi + 2;
+
+      indices[i * 12 + 3] = vi + 2;
+      indices[i * 12 + 4] = vi + 1;
+      indices[i * 12 + 5] = vi + 3;
+
+      const fi = VERTICES + vi;
+      indices[i * 12 + 6] = fi + 2;
+      indices[i * 12 + 7] = fi + 1;
+      indices[i * 12 + 8] = fi + 0;
+
+      indices[i * 12 + 9] = fi + 3;
+      indices[i * 12 + 10] = fi + 1;
+      indices[i * 12 + 11] = fi + 2;
+    }
+
+    const GRASS_PATCH_SIZE = 20;
+    const vertID = new Uint8Array(VERTICES * 2);
+    for (let i = 0; i < VERTICES * 2; ++i) {
+      vertID[i] = i;
+    }
+    const offsets = [];
+    for (let i = 0; i < instances; ++i) {
+      for (let v = 0; v < 3; v++) {
+        offsets.push(
+          Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
+        );
+      }
+    }
+
+    const geometry = new THREE.InstancedBufferGeometry();
+    geometry.instanceCount = instances;
+
+    geometry.setAttribute(
+      "vertIndex",
+      new THREE.Uint8BufferAttribute(vertID, 1)
+    );
+    geometry.setAttribute(
+      "offset",
+      new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3)
+    );
+    geometry.setIndex(indices);
+
+    // material
+    const material = new THREE.RawShaderMaterial({
+      uniforms: {
+        segments: { value: segments },
+        vertexCount: { value: VERTICES },
+      },
+      vertexShader: exampleVert,
+      fragmentShader: exampleFrag,
+      side: THREE.DoubleSide,
+      forceSinglePass: true,
+      transparent: true,
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    engine.scene.add(mesh);
+  }
+}
+
 class World {
   constructor(engine) {
     this.engine = engine;
 
-    const textureShader = engine.renderManager.materialManager.addMaterial(
-      "texture",
-      basicTextureVertexShader,
-      basicTextureFragmentShader,
-      {
-        unique: true,
-      }
-    );
-    const boxG = new THREE.BoxGeometry(1, 1);
-    const boxMesh = new THREE.Mesh(boxG, textureShader);
-    engine.scene.add(boxMesh);
-    boxMesh.castShadow = true;
-    boxMesh.receiveShadow = true;
-    boxMesh.material.shading = THREE.SmoothShading;
-
-    this.box = boxMesh;
+    this.grass = new Grass(engine);
   }
 
-  update() {
-    const time = this.engine.timeManager.time.gameTime;
-    this.box.setRotationFromEuler(new THREE.Euler(0, time, 0));
-  }
+  update() {}
 }
 const world = new World(engine);
 engine.world = world;
