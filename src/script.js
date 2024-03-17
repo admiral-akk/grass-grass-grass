@@ -28,6 +28,8 @@ void main() {
   float vertID = mod(float(vertIndex), vertexCount);
   vVertIndex = vertID;
 
+  float perBladeHash = hash12(offset.xz);
+  float randomAngle = perBladeHash * 2. * PI;
 
   float xSide = mod(vertID, 2.0);
   float heightPercent = (vertID - xSide) / (segments * 2.0);
@@ -35,7 +37,7 @@ void main() {
   float y = heightPercent * grassSize.y;
   float x = (xSide - 0.5) * (1.0 - heightPercent) * grassSize.x;
 
-  vec3 vPosition = vec3(x,y,z) + offset;
+  vec3 vPosition = rotateY(randomAngle) * vec3(x,y,z) + offset;
   gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition, 1.0 );
 }
 `;
@@ -59,7 +61,9 @@ const engine = new ENGINE.KubEngine();
 
 class Grass {
   constructor(engine) {
-    const instances = 100;
+    const instanceBase = 8;
+    const patchSize = 20;
+    const instances = instanceBase * instanceBase;
 
     const segments = 3;
     const VERTICES = (segments + 1) * 2;
@@ -90,7 +94,17 @@ class Grass {
       vertID[i] = i;
     }
     const offsets = [];
-    const rotation = [];
+    for (let x = 0; x < instanceBase; x++) {
+      for (let y = 0; y < instanceBase; y++) {
+        const boxWidth = patchSize / (instanceBase + 1);
+        const baseX = patchSize * (x / instanceBase) - patchSize / 2 + boxWidth;
+        offsets.push(baseX + boxWidth * Math.randomRange(-0.5, 0.5));
+        offsets.push(0);
+        const boxYWidth = patchSize / (instanceBase + 1);
+        const baseY = patchSize * (y / instanceBase) - patchSize / 2 + boxWidth;
+        offsets.push(baseY + boxYWidth * Math.randomRange(-0.5, 0.5));
+      }
+    }
     for (let i = 0; i < instances; ++i) {
       offsets.push(
         Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
@@ -99,7 +113,6 @@ class Grass {
       offsets.push(
         Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
       );
-      rotation.push(Math.randomRange(0, 2 * Math.PI));
     }
 
     const geometry = new THREE.InstancedBufferGeometry();
@@ -112,10 +125,6 @@ class Grass {
     geometry.setAttribute(
       "offset",
       new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3)
-    );
-    geometry.setAttribute(
-      "rotation",
-      new THREE.InstancedBufferAttribute(new Float32Array(rotation), 1)
     );
     geometry.setIndex(indices);
 
