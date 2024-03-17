@@ -320,6 +320,7 @@ class RenderManager {
     const camera = generateCamera(cameraConfig);
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 
+    console.log(renderer.capabilities.isWebGL2);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enabled = true;
     renderer.setClearColor("#201919");

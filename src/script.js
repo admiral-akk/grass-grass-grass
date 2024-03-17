@@ -4,12 +4,16 @@ import { gsap } from "gsap";
 import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import loadingVertexShader from "./shaders/loading/vertex.glsl";
 import loadingFragmentShader from "./shaders/loading/fragment.glsl";
-import flagVertShader from "./shaders/flat/vertex.glsl";
-import flagFragShader from "./shaders/flat/fragment.glsl";
+import flagVertShader from "./shaders/basicTexture/vertex.glsl";
+import flagFragShader from "./shaders/basicTexture/fragment.glsl";
+import shaderGlobals from "./shaders/global.glsl";
 import * as ENGINE from "./engine.js";
 
-const exampleVert = `
-precision mediump  float;
+const exampleVert =
+  shaderGlobals +
+  `
+  in  vec3 offset;
+  in  float vertIndex;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
@@ -17,15 +21,13 @@ uniform float segments;
 uniform float vertexCount;
 uniform vec2 grassSize;
 
-attribute vec3 offset;
-attribute float vertIndex;
 
-varying float vVertIndex;
-
+out  float vVertIndex;
 void main() {
 
   float vertID = mod(float(vertIndex), vertexCount);
   vVertIndex = vertID;
+
 
   float xSide = mod(vertID, 2.0);
   float heightPercent = (vertID - xSide) / (segments * 2.0);
@@ -38,13 +40,14 @@ void main() {
 }
 `;
 
-const exampleFrag = `
-precision mediump  float;
+const exampleFrag =
+  shaderGlobals +
+  `
+  in float vVertIndex;
 
-varying float vVertIndex;
-
+  out vec4 fragColor;
 void main() {
-  gl_FragColor = vec4(0.,1.,0., 1.);
+  fragColor  = vec4(0.,1.,0., 1.);
 }
 `;
 
@@ -87,6 +90,7 @@ class Grass {
       vertID[i] = i;
     }
     const offsets = [];
+    const rotation = [];
     for (let i = 0; i < instances; ++i) {
       offsets.push(
         Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
@@ -95,6 +99,7 @@ class Grass {
       offsets.push(
         Math.randomRange(-GRASS_PATCH_SIZE * 0.5, GRASS_PATCH_SIZE * 0.5)
       );
+      rotation.push(Math.randomRange(0, 2 * Math.PI));
     }
 
     const geometry = new THREE.InstancedBufferGeometry();
@@ -108,6 +113,10 @@ class Grass {
       "offset",
       new THREE.InstancedBufferAttribute(new Float32Array(offsets), 3)
     );
+    geometry.setAttribute(
+      "rotation",
+      new THREE.InstancedBufferAttribute(new Float32Array(rotation), 1)
+    );
     geometry.setIndex(indices);
 
     // material
@@ -119,6 +128,7 @@ class Grass {
       },
       vertexShader: exampleVert,
       fragmentShader: exampleFrag,
+      glslVersion: THREE.GLSL3,
     });
 
     const mesh = new THREE.Mesh(geometry, material);

@@ -1,1 +1,1 @@
-{"renderManager":{"materialManager":{"pBaseColor":{"uniformType":"color","value":{"r":0.5725490196078431,"g":0.5725490196078431,"b":0.5725490196078431}}}}}
+{"renderManager":{"materialManager":{"pBaseColor":{"uniformType":"color","value":{"r":0.5725490196078431,"g":0.5725490196078431,"b":0.5725490196078431}},"pTexture":{"uniformType":"sampler2D","value":"./texture/uvSubgrid.png"}}}}
